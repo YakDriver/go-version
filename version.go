@@ -13,41 +13,41 @@ var (
 	re = regexp.MustCompile(`([a-zA-Z]+|\d+)`)
 )
 
-// CompareVersions compares two versions, returning true if v1 is less than v2.
+// LessThanWithTime compares two versions, returning true if v1 is less than v2.
 // Precedence of comparison is:
 //  1. CreateTime
 //  2. go-version (semantic versioning)
 //  3. Guerilla comparison (versions that do not conform to semantic versioning rules)
 //  4. String comparison
-func CompareVersions(v1CreateTime1, v2CreateTime2 *time.Time, v1, v2 string) bool {
+func LessThanWithTime(v1CreateTime, v2CreateTime *time.Time, v1, v2 string) bool {
 	var zero time.Time
-	if v1CreateTime1 != nil && v2CreateTime2 != nil && !v1CreateTime1.Equal(zero) && !v2CreateTime2.Equal(zero) && !v1CreateTime1.Equal(*v2CreateTime2) {
-		return v1CreateTime1.Before(*v2CreateTime2)
+	if v1CreateTime != nil && v2CreateTime != nil && !v1CreateTime.Equal(zero) && !v2CreateTime.Equal(zero) && !v1CreateTime.Equal(*v2CreateTime) {
+		return v1CreateTime.Before(*v2CreateTime)
 	}
 
-	return CompareVersionStrings(v1, v2)
+	return LessThan(v1, v2)
 }
 
-// CompareVersionStrings compares two version strings, returning true if v1 is less than v2.
+// LessThan compares two version strings, returning true if v1 is less than v2.
 // Precedence of comparison is:
 //  1. go-version (semantic versioning)
 //  2. Guerilla comparison (versions that do not conform to semantic versioning rules)
 //  3. String comparison
-func CompareVersionStrings(v1, v2 string) bool {
+func LessThan(v1, v2 string) bool {
 	a, err := version.NewVersion(v1)
 	if err != nil {
-		return compareVersionStringsGuerrilla(v1, v2)
+		return lessThanStringsGuerrilla(v1, v2)
 	}
 
 	b, err := version.NewVersion(v2)
 	if err != nil {
-		return compareVersionStringsGuerrilla(v1, v2)
+		return lessThanStringsGuerrilla(v1, v2)
 	}
 
 	return a.LessThan(b)
 }
 
-func compareVersionStringsGuerrilla(v1, v2 string) bool {
+func lessThanStringsGuerrilla(v1, v2 string) bool {
 	if v1 == v2 { // save some time if they are equal
 		return false
 	}

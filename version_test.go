@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func TestCompareVersions(t *testing.T) {
+func TestLessThanWithTime(t *testing.T) {
 	t.Parallel()
 
 	time1 := time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)
@@ -107,7 +107,7 @@ func TestCompareVersions(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			got := CompareVersions(test.v1CreateTime, test.v2CreateTime, test.v1, test.v2)
+			got := LessThanWithTime(test.v1CreateTime, test.v2CreateTime, test.v1, test.v2)
 
 			if got != test.want {
 				t.Errorf("unexpected result: %t, wanted: %t; [(%s vs %s), (%s vs %s)]", got, test.want, test.v1CreateTime, test.v2CreateTime, test.v1, test.v2)
@@ -116,7 +116,7 @@ func TestCompareVersions(t *testing.T) {
 	}
 }
 
-func TestCompareVersionStrings(t *testing.T) {
+func TestLessThan(t *testing.T) {
 	t.Parallel()
 
 	type testCase struct {
@@ -432,7 +432,7 @@ func TestCompareVersionStrings(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			got := CompareVersionStrings(test.v1, test.v2)
+			got := LessThan(test.v1, test.v2)
 
 			if got != test.want {
 				t.Errorf("unexpected result: %t, wanted: %t; [(%s vs %s)]", got, test.want, test.v1, test.v2)
