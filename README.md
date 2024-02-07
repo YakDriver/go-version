@@ -18,6 +18,8 @@ _Version comparison will not return errors in any situation._
 
 If you're just comparing version strings without associated times, such as the version create times, use `LessThan()`:
 
+[On Go Playground](https://go.dev/play/p/1lflUMIFPwT)
+
 ```go
 package main
 
@@ -35,7 +37,7 @@ func main() {
     fmt.Printf("%t\n", version.LessThan("1.2rc2", "1.2")) // true
 
     // non-semantic-versioning versions
-    fmt.Printf("%t\n", version.LessThan("8.0.mysql_aurora.3.1.9", "8.0.mysql_aurora.3.1.10")) // false
+    fmt.Printf("%t\n", version.LessThan("8.0.mysql_aurora.3.1.9", "8.0.mysql_aurora.3.1.10")) // true
     fmt.Printf("%t\n", version.LessThan("19.0.0.0.ru-2023-10.rur-2023-10.r9", "19.0.0.0.ru-2023-10.rur-2023-10.r10")) // true 
     fmt.Printf("%t\n", version.LessThan("14.00.3281.5.v1", "14.00.3281.6.v1")) // true   
     fmt.Printf("%t\n", version.LessThan("oracle-ee-9", "oracle-ee-19")) // true            
