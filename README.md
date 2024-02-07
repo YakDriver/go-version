@@ -59,9 +59,8 @@ import (
 func main() {
     time1 := time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC) // January 1, 2000 00:00:00UTC
     time2 := time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC) // January 1, 2024 00:00:00UTC
-
-	semVer1 := "1.0.0"
-	semVer2 := "1.0.1"
+    semVer1 := "1.0.0"
+    semVer2 := "1.0.1"
 
     fmt.Printf("%t\n", version.LessThanWithTime(time1, time2, semVer1, semVer2)) // true
     fmt.Printf("%t\n", version.LessThanWithTime(time1, time2, semVer2, semVer1)) // true (date only)
