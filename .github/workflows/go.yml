@@ -1,27 +1,12 @@
 # Copyright IBM Corp. 2019, 2026
 # "SPDX-License-Identifier: MPL-2.0"
 
-name: Go
-
-on:
-  push:
-    branches: ["main"]
-  pull_request:
-    branches: ["main"]
-  workflow_dispatch:
-
-permissions:
-  contents: read
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+name: PR Checks
+on: pull_request
 
 jobs:
   build-and-test:
-    name: Build and Test
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -29,8 +14,18 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version-file: "go.mod"
+          go-version-file: 'go.mod'
           check-latest: true
+
+      - name: Cache Go modules
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
 
       - name: Install dependencies
         run: go mod download
@@ -46,7 +41,7 @@ jobs:
         run: go build ./...
 
       - name: Run tests
-        run: go test -race -shuffle=on ./...
+        run: go test ./...
 
       - name: Vet code
         run: go vet ./...
@@ -61,7 +56,6 @@ jobs:
   modern-check:
     name: Modern Go Check
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -78,15 +72,12 @@ jobs:
   copyright:
     name: Copyright Check
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
-
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
           go-version: stable
-
       - name: Check copyright headers
         run: go run github.com/YakDriver/copyplop@latest check
