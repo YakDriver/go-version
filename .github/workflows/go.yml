@@ -8,11 +8,20 @@ on:
     branches: ["main"]
   pull_request:
     branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-and-test:
     name: Build and Test
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -22,16 +31,6 @@ jobs:
         with:
           go-version-file: "go.mod"
           check-latest: true
-
-      - name: Cache Go modules
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
 
       - name: Install dependencies
         run: go mod download
@@ -47,7 +46,7 @@ jobs:
         run: go build ./...
 
       - name: Run tests
-        run: go test ./...
+        run: go test -race -shuffle=on ./...
 
       - name: Vet code
         run: go vet ./...
@@ -62,6 +61,7 @@ jobs:
   modern-check:
     name: Modern Go Check
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -78,6 +78,7 @@ jobs:
   copyright:
     name: Copyright Check
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
