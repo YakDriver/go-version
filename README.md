@@ -1,70 +1,137 @@
 # go-version
+<!-- Copyright IBM Corp. 2019, 2026 -->
+<!-- SPDX-License-Identifier: MPL-2.0 -->
 
-**`go-version`** attempts to compare versions. It uses this precedence in comparing:
+**`go-version`** compares version-like strings that don't always play by the rules — including messy, real-world identifiers that strict semantic-versioning libraries choke on. It **never returns an error**: any two strings can always be ordered.
 
-1. The earliest time associated with a version (only when using `LessThanWithTime()`)
-2. Semantic-versioning parsing based on [go-version](https://github.com/hashicorp/go-version)
-3. If the version breaks semantic versioning rules, a smart comparison looking at the version as a version-like thing
-4. A plain string comparison
+It was written for the Terraform AWS Provider, where version strings come straight from AWS APIs (for example, RDS database engine versions) and are not something the caller controls. Values like `19.0.0.0.ru-2023-10.rur-2023-10.r10`, `8.0.mysql_aurora.3.05.2`, `SQL Server 2014 12.00.6439.10.v1`, and `oracle-ee-19` are common, and they must still sort sensibly.
 
-_Version comparison will not return errors in any situation._
+## Why not hashicorp/go-version or Masterminds/semver?
 
-`go-version` is optimized for the versions used by AWS RDS database engine versions. It will likely work with many other version-like situations.
+Those libraries are excellent — when your versions follow the rules. This package is for when they don't.
 
-# Usage examples
+| | `YakDriver/go-version` | [`hashicorp/go-version`](https://github.com/hashicorp/go-version) | [`Masterminds/semver`](https://github.com/Masterminds/semver) |
+| --- | --- | --- | --- |
+| Non-semver strings (e.g. `oracle-ee-19`, `8.0.mysql_aurora.3.05.2`) | Compares them anyway | Returns an error | Returns an error |
+| Error handling | Never errors | Errors on parse failure | Errors on parse failure |
+| Timestamp-aware ordering | Yes (`*WithTime`) | No | No |
+| Semantic-versioning support | Yes (delegates to `hashicorp/go-version`) | Yes (strict) | Yes (strict, constraints) |
+| Constraints / ranges (`>=1.2, <2.0`) | No | Yes | Yes |
+| Best fit | Untrusted, vendor-supplied version strings | Well-formed versions, constraint checking | Well-formed versions, constraint checking |
 
+In short: reach for `hashicorp/go-version` or `Masterminds/semver` when you control the versions and want strict parsing or constraint ranges. Reach for this package when you **don't** control the versions and just need a total order that won't blow up.
 
-## `LessThan`
+## How comparison works
 
-If you're just comparing version strings without associated times, such as the version create times, use `LessThan()`:
+Comparison uses this precedence, highest to lowest:
 
-[On Go Playground](https://go.dev/play/p/1lflUMIFPwT)
+1. **Associated timestamps** — only in the `*WithTime` functions, when both times are present, non-zero, and distinct.
+2. **Semantic versioning** — parsed via [`hashicorp/go-version`](https://github.com/hashicorp/go-version).
+3. **Guerrilla comparison** — for version-like strings that break semver rules, comparing dot-separated parts numerically where possible and by letter/digit runs otherwise.
+4. **Plain string comparison** — the final fallback.
+
+## API
+
+Every comparison has a boolean helper and a `*WithTime` variant, all built on `Compare`:
+
+| Function | Returns | Description |
+| --- | --- | --- |
+| `Compare(v1, v2)` | `int` | `-1`, `0`, or `+1` |
+| `LessThan(v1, v2)` | `bool` | `v1` sorts before `v2` |
+| `GreaterThan(v1, v2)` | `bool` | `v1` sorts after `v2` |
+| `Equal(v1, v2)` | `bool` | `v1` and `v2` sort equally |
+| `CompareWithTime(t1, t2, v1, v2)` | `int` | timestamp-aware `Compare` |
+| `LessThanWithTime(t1, t2, v1, v2)` | `bool` | timestamp-aware `LessThan` |
+| `GreaterThanWithTime(t1, t2, v1, v2)` | `bool` | timestamp-aware `GreaterThan` |
+| `EqualWithTime(t1, t2, v1, v2)` | `bool` | timestamp-aware `Equal` |
+
+The timestamp arguments are `*time.Time`; `nil` or zero times are ignored, in which case the functions fall back to the string comparison.
+
+> **Note:** because semantic versions are compared semantically, `Equal("1.0", "1.0.0")` is `true`.
+
+## Usage
+
+### `LessThan`
+
+For comparing version strings without associated times, use `LessThan()`:
 
 ```go
 package main
 
 import (
-    "time"
+	"fmt"
 
-    "github.com/YakDriver/go-version"
+	"github.com/YakDriver/go-version"
 )
 
 func main() {
-    // normal semantic-versioning versions
-    fmt.Printf("%t\n", version.LessThan("10.11.9", "10.11.10")) // true
-    fmt.Printf("%t\n", version.LessThan("10.4", "10.4.27")) // true
-    fmt.Printf("%t\n", version.LessThan("10.6.8", "11")) // true
-    fmt.Printf("%t\n", version.LessThan("1.2rc2", "1.2")) // true
+	// normal semantic-versioning versions
+	fmt.Printf("%t\n", version.LessThan("10.11.9", "10.11.10")) // true
+	fmt.Printf("%t\n", version.LessThan("10.4", "10.4.27"))      // true
+	fmt.Printf("%t\n", version.LessThan("10.6.8", "11"))         // true
+	fmt.Printf("%t\n", version.LessThan("1.2rc2", "1.2"))        // true
 
-    // non-semantic-versioning versions
-    fmt.Printf("%t\n", version.LessThan("8.0.mysql_aurora.3.1.9", "8.0.mysql_aurora.3.1.10")) // true
-    fmt.Printf("%t\n", version.LessThan("19.0.0.0.ru-2023-10.rur-2023-10.r9", "19.0.0.0.ru-2023-10.rur-2023-10.r10")) // true 
-    fmt.Printf("%t\n", version.LessThan("14.00.3281.5.v1", "14.00.3281.6.v1")) // true   
-    fmt.Printf("%t\n", version.LessThan("oracle-ee-9", "oracle-ee-19")) // true            
+	// non-semantic-versioning versions
+	fmt.Printf("%t\n", version.LessThan("8.0.mysql_aurora.3.1.9", "8.0.mysql_aurora.3.1.10"))                       // true
+	fmt.Printf("%t\n", version.LessThan("19.0.0.0.ru-2023-10.rur-2023-10.r9", "19.0.0.0.ru-2023-10.rur-2023-10.r10")) // true
+	fmt.Printf("%t\n", version.LessThan("14.00.3281.5.v1", "14.00.3281.6.v1"))                                      // true
+	fmt.Printf("%t\n", version.LessThan("oracle-ee-9", "oracle-ee-19"))                                            // true
 }
 ```
 
-## `LessThanWithTime`
-To compare versions with associated times, such as create times, use `LessThanWithTime()`:
+### `Compare`, `GreaterThan`, and `Equal`
+
+Use `Compare()` when you need a three-way result (for example, as a `slices.SortFunc` comparator), or the boolean helpers for direct checks:
 
 ```go
 package main
 
 import (
-    "time"
+	"fmt"
+	"slices"
 
-    "github.com/YakDriver/go-version"
+	"github.com/YakDriver/go-version"
 )
 
 func main() {
-    time1 := time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC) // January 1, 2000 00:00:00UTC
-    time2 := time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC) // January 1, 2024 00:00:00UTC
-    semVer1 := "1.0.0"
-    semVer2 := "1.0.1"
+	fmt.Println(version.Compare("11.16", "11.5"))     // 1
+	fmt.Println(version.Compare("1.0", "1.0.0"))       // 0
+	fmt.Println(version.GreaterThan("oracle-ee-19", "oracle-ee-9")) // true
+	fmt.Println(version.Equal("1.0", "1.0.0"))         // true
 
-    fmt.Printf("%t\n", version.LessThanWithTime(time1, time2, semVer1, semVer2)) // true
-    fmt.Printf("%t\n", version.LessThanWithTime(time1, time2, semVer2, semVer1)) // true (date only)
-    fmt.Printf("%t\n", version.LessThanWithTime(time2, time1, semVer1, semVer2)) // false
-    fmt.Printf("%t\n", version.LessThanWithTime(time1, time1, semVer1, semVer2)) // true (same time, check versions)
+	engines := []string{"8.0.35", "5.7.44", "8.0", "5.7"}
+	slices.SortFunc(engines, version.Compare)
+	fmt.Println(engines) // [5.7 5.7.44 8.0 8.0.35]
 }
 ```
+
+### `LessThanWithTime`
+
+To compare versions using their associated times (such as create times), use `LessThanWithTime()`. When both times are present, non-zero, and distinct, the earlier time wins; otherwise the versions are compared directly:
+
+```go
+package main
+
+import (
+	"fmt"
+	"time"
+
+	"github.com/YakDriver/go-version"
+)
+
+func main() {
+	time1 := time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC) // January 1, 2000 00:00:00 UTC
+	time2 := time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC) // January 1, 2024 00:00:00 UTC
+	semVer1 := "1.0.0"
+	semVer2 := "1.0.1"
+
+	fmt.Printf("%t\n", version.LessThanWithTime(&time1, &time2, semVer1, semVer2)) // true
+	fmt.Printf("%t\n", version.LessThanWithTime(&time1, &time2, semVer2, semVer1)) // true (date only)
+	fmt.Printf("%t\n", version.LessThanWithTime(&time2, &time1, semVer1, semVer2)) // false
+	fmt.Printf("%t\n", version.LessThanWithTime(&time1, &time1, semVer1, semVer2)) // true (same time, check versions)
+}
+```
+
+## License
+
+[MPL-2.0](LICENSE)
