@@ -2,7 +2,9 @@
 <!-- Copyright IBM Corp. 2019, 2026 -->
 <!-- SPDX-License-Identifier: MPL-2.0 -->
 
-**`go-version`** compares version-like strings that don't always play by the rules — including messy, real-world identifiers that strict semantic-versioning libraries choke on. It **never returns an error**: any two strings can always be ordered.
+> **I fought the law — and got sorted anyway.**
+
+Rebel versions, gangster versions, versions that never once read the semver spec: all welcome here, all treated with the same respect as their law-abiding, `1.2.3` cousins. **`go-version`** compares version-like strings that don't always play by the rules — the messy, real-world identifiers that strict semantic-versioning libraries choke on — and it **never returns an error**: any two strings can always be ordered.
 
 It was written for the Terraform AWS Provider, where version strings come straight from AWS APIs (for example, RDS database engine versions) and are not something the caller controls. Values like `19.0.0.0.ru-2023-10.rur-2023-10.r10`, `8.0.mysql_aurora.3.05.2`, `SQL Server 2014 12.00.6439.10.v1`, and `oracle-ee-19` are common, and they must still sort sensibly.
 
