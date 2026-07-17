@@ -794,6 +794,20 @@ func TestSortNonSemantic(t *testing.T) {
 	}
 }
 
+func TestSortStable(t *testing.T) {
+	t.Parallel()
+
+	// "1.0", "1.0.0", and "1.0.0.0" all compare equal; a stable sort must keep
+	// their original relative order.
+	versions := []string{"1.0.0", "2.0", "1.0", "1.0.0.0"}
+	Sort(versions)
+
+	want := []string{"1.0.0", "1.0", "1.0.0.0", "2.0"}
+	if !slices.Equal(versions, want) {
+		t.Errorf("Sort = %v, want %v (equal elements should keep input order)", versions, want)
+	}
+}
+
 func TestSortDescending(t *testing.T) {
 	t.Parallel()
 

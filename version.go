@@ -172,15 +172,16 @@ func Min(versions ...string) string {
 }
 
 // Sort sorts a slice of version strings in ascending order, in place, using
-// [Compare].
+// [Compare]. Versions that compare equal keep their original relative order.
 func Sort(versions []string) {
-	slices.SortFunc(versions, Compare)
+	slices.SortStableFunc(versions, Compare)
 }
 
 // SortDescending sorts a slice of version strings in descending order, in
-// place, using [Compare].
+// place, using [Compare]. Versions that compare equal keep their original
+// relative order.
 func SortDescending(versions []string) {
-	slices.SortFunc(versions, func(a, b string) int {
+	slices.SortStableFunc(versions, func(a, b string) int {
 		return Compare(b, a)
 	})
 }
