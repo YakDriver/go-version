@@ -22,6 +22,7 @@ package version
 import (
 	"cmp"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -106,6 +107,82 @@ func Equal(v1, v2 string) bool {
 // distinct.
 func EqualWithTime(v1CreateTime, v2CreateTime *time.Time, v1, v2 string) bool {
 	return CompareWithTime(v1CreateTime, v2CreateTime, v1, v2) == 0
+}
+
+// LessThanOrEqual reports whether v1 sorts before or equal to v2. See the
+// package documentation for the comparison precedence.
+func LessThanOrEqual(v1, v2 string) bool {
+	return Compare(v1, v2) <= 0
+}
+
+// LessThanOrEqualWithTime reports whether v1 sorts before or equal to v2, giving
+// precedence to the associated timestamps when both are present, non-zero, and
+// distinct.
+func LessThanOrEqualWithTime(v1CreateTime, v2CreateTime *time.Time, v1, v2 string) bool {
+	return CompareWithTime(v1CreateTime, v2CreateTime, v1, v2) <= 0
+}
+
+// GreaterThanOrEqual reports whether v1 sorts after or equal to v2. See the
+// package documentation for the comparison precedence.
+func GreaterThanOrEqual(v1, v2 string) bool {
+	return Compare(v1, v2) >= 0
+}
+
+// GreaterThanOrEqualWithTime reports whether v1 sorts after or equal to v2,
+// giving precedence to the associated timestamps when both are present,
+// non-zero, and distinct.
+func GreaterThanOrEqualWithTime(v1CreateTime, v2CreateTime *time.Time, v1, v2 string) bool {
+	return CompareWithTime(v1CreateTime, v2CreateTime, v1, v2) >= 0
+}
+
+// Max returns the greatest of the given versions, using [Compare]. If no
+// versions are given, it returns the empty string. When several versions
+// compare equal, the first of them is returned.
+func Max(versions ...string) string {
+	if len(versions) == 0 {
+		return ""
+	}
+
+	highest := versions[0]
+	for _, v := range versions[1:] {
+		if Compare(v, highest) > 0 {
+			highest = v
+		}
+	}
+
+	return highest
+}
+
+// Min returns the least of the given versions, using [Compare]. If no versions
+// are given, it returns the empty string. When several versions compare equal,
+// the first of them is returned.
+func Min(versions ...string) string {
+	if len(versions) == 0 {
+		return ""
+	}
+
+	lowest := versions[0]
+	for _, v := range versions[1:] {
+		if Compare(v, lowest) < 0 {
+			lowest = v
+		}
+	}
+
+	return lowest
+}
+
+// Sort sorts a slice of version strings in ascending order, in place, using
+// [Compare].
+func Sort(versions []string) {
+	slices.SortFunc(versions, Compare)
+}
+
+// SortDescending sorts a slice of version strings in descending order, in
+// place, using [Compare].
+func SortDescending(versions []string) {
+	slices.SortFunc(versions, func(a, b string) int {
+		return Compare(b, a)
+	})
 }
 
 // compareStringsGuerrilla compares two version-like strings that are not valid
