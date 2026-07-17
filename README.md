@@ -38,16 +38,31 @@ Every comparison has a boolean helper and a `*WithTime` variant, all built on `C
 | --- | --- | --- |
 | `Compare(v1, v2)` | `int` | `-1`, `0`, or `+1` |
 | `LessThan(v1, v2)` | `bool` | `v1` sorts before `v2` |
+| `LessThanOrEqual(v1, v2)` | `bool` | `v1` sorts before or equal to `v2` |
 | `GreaterThan(v1, v2)` | `bool` | `v1` sorts after `v2` |
+| `GreaterThanOrEqual(v1, v2)` | `bool` | `v1` sorts after or equal to `v2` |
 | `Equal(v1, v2)` | `bool` | `v1` and `v2` sort equally |
 | `CompareWithTime(t1, t2, v1, v2)` | `int` | timestamp-aware `Compare` |
 | `LessThanWithTime(t1, t2, v1, v2)` | `bool` | timestamp-aware `LessThan` |
+| `LessThanOrEqualWithTime(t1, t2, v1, v2)` | `bool` | timestamp-aware `LessThanOrEqual` |
 | `GreaterThanWithTime(t1, t2, v1, v2)` | `bool` | timestamp-aware `GreaterThan` |
+| `GreaterThanOrEqualWithTime(t1, t2, v1, v2)` | `bool` | timestamp-aware `GreaterThanOrEqual` |
 | `EqualWithTime(t1, t2, v1, v2)` | `bool` | timestamp-aware `Equal` |
 
 The timestamp arguments are `*time.Time`; `nil` or zero times are ignored, in which case the functions fall back to the string comparison.
 
 > **Note:** because semantic versions are compared semantically, `Equal("1.0", "1.0.0")` is `true`.
+
+### Ordering helpers
+
+Convenience helpers for working with collections of version strings, all built on `Compare`:
+
+| Function | Returns | Description |
+| --- | --- | --- |
+| `Max(versions ...string)` | `string` | greatest version, or `""` if none |
+| `Min(versions ...string)` | `string` | least version, or `""` if none |
+| `Sort(versions []string)` | | sorts ascending, in place |
+| `SortDescending(versions []string)` | | sorts descending, in place |
 
 ## Usage
 
@@ -102,6 +117,33 @@ func main() {
 	engines := []string{"8.0.35", "5.7.44", "8.0", "5.7"}
 	slices.SortFunc(engines, version.Compare)
 	fmt.Println(engines) // [5.7 5.7.44 8.0 8.0.35]
+}
+```
+
+### `Sort`, `Max`, and `Min`
+
+For working with collections of version strings, use the ordering helpers instead of wiring up `Compare` yourself:
+
+```go
+package main
+
+import (
+	"fmt"
+
+	"github.com/YakDriver/go-version"
+)
+
+func main() {
+	engines := []string{"8.0.35", "5.7.44", "8.0", "5.7"}
+
+	version.Sort(engines)
+	fmt.Println(engines) // [5.7 5.7.44 8.0 8.0.35]
+
+	version.SortDescending(engines)
+	fmt.Println(engines) // [8.0.35 8.0 5.7.44 5.7]
+
+	fmt.Println(version.Max("oracle-ee-9", "oracle-ee-19", "oracle-ee-18")) // oracle-ee-19
+	fmt.Println(version.Min("8.0.35", "5.7.44", "8.0", "5.7"))              // 5.7
 }
 ```
 
